@@ -1,17 +1,17 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
+import history from '../history'
+import { Grid, Modal, Button, Segment, Header, Popup, Icon } from 'semantic-ui-react'
 
 /**
  * COMPONENT
  */
 export const UserHome = props => {
-  const {email} = props
-
   return (
-    <div>
-      <h3>Welcome, {email}</h3>
-    </div>
+    <Segment basic>
+      <Button onClick={()=>history.push("/stable-set-component")}>Go to StableSet Trading</Button>
+    </Segment>
   )
 }
 
@@ -30,5 +30,4 @@ export default connect(mapState)(UserHome)
  * PROP TYPES
  */
 UserHome.propTypes = {
-  email: PropTypes.string
 }

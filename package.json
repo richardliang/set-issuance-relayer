@@ -1,5 +1,5 @@
 {
-  "name": "boilermaker",
+  "name": "issuance-relayer",
   "version": "1.0.0",
   "description": "Some boilerplate code to get you started - get shakin'!",
   "engines": {
@@ -37,6 +37,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.15.3",
+    "bignumber.js": "^4.1.0",
     "compression": "^1.7.3",
     "connect-session-sequelize": "^4.1.0",
     "express": "^4.16.3",
@@ -55,8 +56,11 @@
     "redux": "^3.6.0",
     "redux-logger": "^2.8.1",
     "redux-thunk": "^2.3.0",
+    "semantic-ui-react": "^0.82.5",
     "sequelize": "^4.38.0",
-    "socket.io": "^2.1.1"
+    "setprotocol.js": "^1.0.3",
+    "socket.io": "^2.1.1",
+    "web3": "0.20.7"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0-beta.55",

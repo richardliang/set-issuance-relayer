@@ -2,6 +2,7 @@
 
 const db = require('../server/db')
 const {User} = require('../server/db/models')
+const {TokenAddresses} = require('../server/db/models')
 
 async function seed() {
   await db.sync({force: true})
@@ -12,7 +13,12 @@ async function seed() {
     User.create({email: 'murphy@email.com', password: '123'})
   ])
 
-  console.log(`seeded ${users.length} users`)
+  const tokenAddresses = await Promise.all([
+    TokenAddresses.create({name: 'trueUsd', address: '0xAdB015D61F4bEb2A712D237D9d4c5B75BAFEfd7B'}),
+    TokenAddresses.create({name: 'dai', address: '0x1d82471142F0aeEEc9FC375fC975629056c26ceE'})
+  ])
+
+  console.log(`seeded ${users.length} users, ${tokenAddresses.length} addresses`)
   console.log(`seeded successfully`)
 }
 

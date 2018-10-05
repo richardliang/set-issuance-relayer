@@ -176,10 +176,47 @@ class StableSetComponent extends Component {
     await this.props.createNewOrder(JSONOrder)
   }
 
+  check0xAllowance = async () => {
+    const {setProtocol, signedIssuanceOrders} = this.props
+
+    const zeroExMaker = setProtocol.web3.eth.accounts[0];
+
+    const orderObj = signedIssuanceOrders.find(order => order.id === index)
+    const signedIssuanceOrder = orderObj.signedIssuanceOrder
+
+    const allowanceTrueUsd = await setProtocol.erc20.getAllowanceAsync(
+    addresses.trueUsd,
+    zeroExMaker,
+    addresses.ERC20Proxy,
+    )
+
+    const allowanceDai = await setProtocol.erc20.getAllowanceAsync(
+      addresses.trueUsd,
+      zeroExMaker,
+      addresses.ERC20Proxy,
+      )
+    if(allowanceTrueUsd.comparedTo(signedIssuanceOrder.quantity)===-1){  
+      await setProtocol.erc20.approveAsync(
+        addresses.trueUsd,
+        addresses.ERC20Proxy,
+        new BigNumber(5000000000000000000000), 
+        { from: zeroExMaker },
+      );
+    }
+    if(allowanceDai.comparedTo(signedIssuanceOrder.quantity)===-1){  
+      await setProtocol.erc20.approveAsync(
+        addresses.dai,
+        addresses.ERC20Proxy,
+        new BigNumber(5000000000000000000000), 
+        { from: zeroExMaker },
+      );
+    }
+  }
+
   createZeroExIssuanceOrderWethStableSet = async (index) => {
     const {setProtocol,signedIssuanceOrders} = this.props
     const {details} = this.state
-    
+
     const orderObj = signedIssuanceOrders.find(order => order.id === index)
     const signedIssuanceOrder = orderObj.signedIssuanceOrder
 
@@ -187,20 +224,8 @@ class StableSetComponent extends Component {
     const takerAddress = setProtocol.web3.eth.accounts[0]
 
     console.log(setProtocol.web3.currentProvider)
-    // await setProtocol.erc20.approveAsync(
-    //   addresses.trueUsd,
-    //   addresses.ERC20Proxy,
-    //   new BigNumber(5000000000000000000000), // .5 units of trueUSD
-    //   { from: zeroExMaker },
-    // );
 
-    // await setProtocol.erc20.approveAsync(
-    //   addresses.dai,
-    //   addresses.ERC20Proxy,
-    //   new BigNumber(5000000000000000000000), // .5 units of Dai
-    //   { from: zeroExMaker },
-    // );
-    // console.log(signedIssuanceOrder)
+    await this.check0xAllowance();
 
     // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.trueUsd, { from: takerAddress });
     // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.dai, { from: takerAddress });

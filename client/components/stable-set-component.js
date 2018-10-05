@@ -16,6 +16,7 @@ class StableSetComponent extends Component {
       loading: false,
       stableSetQty: 0,
       price: 0,
+      details: {},
       seconds: 0,
       issueQty: 0,
       redeemQty: 0,
@@ -26,13 +27,20 @@ class StableSetComponent extends Component {
   async componentDidMount() {
     const {setProtocol} = this.props
 
+    this.setState({
+      loading: true
+    })
     const details = await setProtocol.setToken.getDetails(addresses.stableSet)
     const setBalance = await setProtocol.erc20.getBalanceOfAsync(addresses.stableSet, setProtocol.web3.eth.accounts[0])
     console.log(details, setBalance)
 
     this.setState({
-      balance: (setBalance.toNumber()/(10 ** 18)).toFixed(4)
+      balance: (setBalance.toNumber()/(10 ** 18)).toFixed(4),
+      details: details,
+      loading: false
     })
+
+    console.log(details)
   }
 
   handleCreateSet = async () => {
@@ -66,8 +74,7 @@ class StableSetComponent extends Component {
   issueStableSet = async () => {
     const {setProtocol} = this.props
     const {issueQty} = this.state
-
-    const issueQuantity = new BigNumber(issueQty*10 ** 18);
+    const issueQuantity = new BigNumber(new BigNumber(10 ** 18).mul(issueQty));
 
     const isMultipleOfNaturalUnit = await setProtocol.setToken.isMultipleOfNaturalUnitAsync(addresses.stableSet, issueQuantity);
     await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.stableSet, { from: setProtocol.web3.eth.accounts[0] });
@@ -78,7 +85,7 @@ class StableSetComponent extends Component {
           issueQuantity,
           {
             from: setProtocol.web3.eth.accounts[0],
-            gas: 4000000,
+            gas: 2000000,
             gasPrice: 8000000000,
           },
         );
@@ -93,7 +100,7 @@ class StableSetComponent extends Component {
     const {setProtocol} = this.props
     const {redeemQty} = this.state
 
-    const quantity = new BigNumber(redeemQty * 10 ** 18);
+    const quantity = new BigNumber(new BigNumber(10 ** 18).mul(redeemQty));
     const withdraw = true;
     const tokensToExclude = [];
     const txOpts = {
@@ -115,28 +122,19 @@ class StableSetComponent extends Component {
 
   createIssuanceOrderWethStableSet = async () => {
     const {setProtocol} = this.props
-    const {stableSetQty, price, seconds} = this.state
+    const {stableSetQty, price, seconds, details} = this.state
     const [makerAddress] = setProtocol.web3.eth.accounts
 
     const wethQty = Math.floor(stableSetQty*price*1000000)/1000000
 
-    const quantity = new BigNumber(stableSetQty * 10**18); //100sets
+    const quantity = new BigNumber(new BigNumber(10**18).mul(stableSetQty))
 
-    const requiredComponents = [addresses.dai, addresses.trueUsd];
+    const requiredComponents = details.components.map(component => component.address);
 
-    // const requiredComponentAmounts = (await setProtocol.orders.calculateRequiredComponentsAndUnitsAsync(
-    //   addresses.stableSet,
-    //   makerAddress,
-    //   quantity
-    // )).units;
-
-    const requiredComponentAmounts = [
-      new BigNumber(stableSetQty * 10**17 * 5),
-      new BigNumber(stableSetQty * 10**17 * 5),
-    ];
+    const requiredComponentAmounts = details.components.map(component => new BigNumber(new BigNumber(10**17).mul(component.unit).mul(stableSetQty)))
 
     const makerToken = addresses.weth;
-    const makerTokenAmount = new BigNumber(wethQty * 10**18);
+    const makerTokenAmount = new BigNumber(new BigNumber(10**18).mul(wethQty))
     const expiration = setProtocol.orders.generateExpirationTimestamp(seconds);
 
     const relayerAddress = SetProtocol.NULL_ADDRESS
@@ -150,10 +148,10 @@ class StableSetComponent extends Component {
       gasPrice: 8000000000
     };
 
-    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(
-      makerToken,
-      txOpts
-    )
+    // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(
+    //   makerToken,
+    //   txOpts
+    // )
 
     const signedIssuanceOrder = await setProtocol.orders.createSignedOrderAsync(
       addresses.stableSet,
@@ -176,64 +174,67 @@ class StableSetComponent extends Component {
     console.log("Order", JSONOrder);
 
     await this.props.createNewOrder(JSONOrder)
-    // console.log(signedIssuanceOrder, JSONOrder)
   }
 
   createZeroExIssuanceOrderWethStableSet = async (index) => {
     const {setProtocol,signedIssuanceOrders} = this.props
-    const signedIssuanceOrder = signedIssuanceOrders[index].signedIssuanceOrder
+    const {details} = this.state
+    
+    const orderObj = signedIssuanceOrders.find(order => order.id === index)
+    const signedIssuanceOrder = orderObj.signedIssuanceOrder
 
     const zeroExMaker = setProtocol.web3.eth.accounts[0];
     const takerAddress = setProtocol.web3.eth.accounts[0]
 
-    // console.log(setProtocol.web3.currentProvider)
-    await setProtocol.erc20.approveAsync(
-      addresses.trueUsd,
-      addresses.ERC20Proxy,
-      new BigNumber(5000000000000000000), // .5 units of trueUSD
-      { from: zeroExMaker },
-    );
+    console.log(setProtocol.web3.currentProvider)
+    // await setProtocol.erc20.approveAsync(
+    //   addresses.trueUsd,
+    //   addresses.ERC20Proxy,
+    //   new BigNumber(5000000000000000000000), // .5 units of trueUSD
+    //   { from: zeroExMaker },
+    // );
 
-    await setProtocol.erc20.approveAsync(
-      addresses.dai,
-      addresses.ERC20Proxy,
-      new BigNumber(5000000000000000000), // .5 units of Dai
-      { from: zeroExMaker },
-    );
+    // await setProtocol.erc20.approveAsync(
+    //   addresses.dai,
+    //   addresses.ERC20Proxy,
+    //   new BigNumber(5000000000000000000000), // .5 units of Dai
+    //   { from: zeroExMaker },
+    // );
+    // console.log(signedIssuanceOrder)
 
-    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.trueUsd, { from: takerAddress });
-    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.dai, { from: takerAddress });
+    // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.trueUsd, { from: takerAddress });
+    // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.dai, { from: takerAddress });
+    const fillQuantity = signedIssuanceOrder.quantity
 
     const zeroExOrderTrueUSD = {
       exchangeAddress: addresses.Exchange,
-      expirationTimeSeconds: setProtocol.orders.generateExpirationTimestamp(86400),
+      expirationTimeSeconds: setProtocol.orders.generateExpirationTimestamp(180),
       feeRecipientAddress: SetProtocol.NULL_ADDRESS,
       makerAddress: zeroExMaker,
-      makerAssetAmount: new BigNumber(500000000000000000),
+      makerAssetAmount: new BigNumber(fillQuantity.dividedBy(2)),
       makerAssetData: assetDataUtils.encodeERC20AssetData(addresses.trueUsd),
       makerFee: new BigNumber(0),
       salt: setProtocol.orders.generateSalt(),
       senderAddress: SetProtocol.NULL_ADDRESS,
       takerAddress: SetProtocol.NULL_ADDRESS,
-      takerAssetAmount: new BigNumber(1700000000000000),
+      takerAssetAmount: new BigNumber(signedIssuanceOrder.makerTokenAmount.dividedBy(2)),
       takerAssetData: assetDataUtils.encodeERC20AssetData(addresses.weth),
       takerFee: new BigNumber(0),
     };
 
-    console.log(addresses.weth, signedIssuanceOrder.makerToken)
 
     const zeroExOrderDai = {
       exchangeAddress: addresses.Exchange,
-      expirationTimeSeconds: setProtocol.orders.generateExpirationTimestamp(86400),
+      expirationTimeSeconds: setProtocol.orders.generateExpirationTimestamp(180),
       feeRecipientAddress: SetProtocol.NULL_ADDRESS,
       makerAddress: zeroExMaker,
-      makerAssetAmount: new BigNumber(500000000000000000),
+      makerAssetAmount: new BigNumber(fillQuantity.dividedBy(2)),
       makerAssetData: assetDataUtils.encodeERC20AssetData(addresses.dai),
       makerFee: new BigNumber(0),
       salt: setProtocol.orders.generateSalt(),
       senderAddress: SetProtocol.NULL_ADDRESS,
       takerAddress: SetProtocol.NULL_ADDRESS,
-      takerAssetAmount: new BigNumber(1700000000000000),
+      takerAssetAmount: new BigNumber(signedIssuanceOrder.makerTokenAmount.dividedBy(2)),
       takerAssetData: assetDataUtils.encodeERC20AssetData(addresses.weth),
       takerFee: new BigNumber(0),
     };
@@ -289,24 +290,29 @@ class StableSetComponent extends Component {
     };
 
     console.log(zeroExSignedOrderDai, zeroExSignedOrderTrueUSD)
-    await setProtocol.orders.validateOrderFillableOrThrowAsync(signedIssuanceOrder, signedIssuanceOrder.quantity);
-    await setProtocol.orders.fillOrderAsync(
-      signedIssuanceOrder,
-      signedIssuanceOrder.quantity,
-      orders,
-      txOpts
-      );
+    try{
+      await setProtocol.orders.validateOrderFillableOrThrowAsync(signedIssuanceOrder, signedIssuanceOrder.quantity);
+      await setProtocol.orders.fillOrderAsync(
+        signedIssuanceOrder,
+        signedIssuanceOrder.quantity,
+        orders,
+        txOpts
+        );
+      await this.props.removeFilledOrExpiredOrder(orderObj.id)
+    }
+    catch(err){
+      console.error(err)
+    }
   }
 
   handleFillOrder = async (index) => {
     const {setProtocol, signedIssuanceOrders} = this.props
+    const orderObj = signedIssuanceOrders.find(order => order.id === index)
 
-    const signedIssuanceOrder = signedIssuanceOrders[index].signedIssuanceOrder
+    const signedIssuanceOrder = orderObj.signedIssuanceOrder
 
     const [takerAddress] = setProtocol.web3.eth.accounts
-    console.log(takerAddress)
     const fillQuantity = signedIssuanceOrder.quantity;
-    console.log(fillQuantity, signedIssuanceOrders)
     await setProtocol.orders.validateOrderFillableOrThrowAsync(signedIssuanceOrder, fillQuantity);
     const takerWalletOrder1 = {
       takerTokenAddress: addresses.dai,
@@ -317,16 +323,15 @@ class StableSetComponent extends Component {
       takerTokenAmount: new BigNumber(fillQuantity.dividedBy(2)),
     }
 
-    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.dai, { from: takerAddress });
-    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.trueUsd, { from: takerAddress });
+    // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.dai, { from: takerAddress });
+    // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.trueUsd, { from: takerAddress });
 
     const orders = [takerWalletOrder1, takerWalletOrder2];
     const txOpts = {
       from: takerAddress,
-      gas: 6712390,
+      gas: 3000000,
       gasPrice: 8000000000
     };
-    console.log(orders, signedIssuanceOrder)
     try{
       await setProtocol.orders.fillOrderAsync(
         signedIssuanceOrder,
@@ -334,7 +339,7 @@ class StableSetComponent extends Component {
         orders,
         txOpts
       );
-      // this.props.removeFilledOrExpiredOrder(signedIssuanceOrder.id)
+      await this.props.removeFilledOrExpiredOrder(orderObj.id)
     }
     catch(error){
       console.error(error)
@@ -356,7 +361,7 @@ class StableSetComponent extends Component {
       signedIssuanceOrders
     } = this.props
     return (
-      <Segment basic>
+      <Segment basic loading={loading}>
         <Grid padded>
           <Grid.Row>
             <Segment basic><Header as="h3">My Balance of STBL: {balance}</Header></Segment> 
@@ -416,8 +421,8 @@ class StableSetComponent extends Component {
                   <div>{order.signedIssuanceOrder.expiration && order.signedIssuanceOrder.expiration.toString()}</div>
                   <div>{order.signedIssuanceOrder.makerTokenAmount && order.signedIssuanceOrder.makerTokenAmount.toString()}</div>
                   <div>{order.signedIssuanceOrder.makerAddress && order.signedIssuanceOrder.makerAddress}</div>
-                  <Button onClick={() => this.handleFillOrder(i)}>Fill Order</Button>
-                  <Button onClick={() => this.createZeroExIssuanceOrderWethStableSet(i)}>Fill 0x Order</Button>
+                  <Button onClick={() => this.handleFillOrder(order.id)}>Fill Order</Button>
+                  <Button onClick={() => this.createZeroExIssuanceOrderWethStableSet(order.id)}>Fill 0x Order</Button>
                 </Segment>
                 ))}
 

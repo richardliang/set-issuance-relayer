@@ -41,7 +41,20 @@ export const fetchOpenOrders = () => async dispatch => {
 export const createNewOrder = (order) => async dispatch => {
   try {
     const res = await axios.post('/api/signedIssuanceOrders',{signedIssuanceOrder: order})
-    dispatch(postNewOrder(res.data || defaultOrder))
+    const parsed = JSON.parse(res.data.signedIssuanceOrder)
+    parsed.expiration = new BigNumber(parsed.expiration)
+    parsed.makerRelayerFee = new BigNumber(parsed.makerRelayerFee)
+    parsed.makerTokenAmount = new BigNumber(parsed.makerTokenAmount)
+    parsed.quantity = new BigNumber(parsed.quantity)
+    parsed.requiredComponentAmounts = parsed.requiredComponentAmounts.map(comp => new BigNumber(comp))
+    parsed.salt = new BigNumber(parsed.salt)
+    parsed.takerRelayerFee = new BigNumber(parsed.takerRelayerFee)
+    parsed.signature.v = new BigNumber(parsed.signature.v)
+    const object = {
+      id: res.data.id,
+      signedIssuanceOrder: parsed
+    }
+    dispatch(postNewOrder(object || defaultOrder))
   } catch (err) {
     console.error(err)
   }

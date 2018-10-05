@@ -2,10 +2,10 @@ import SetProtocol from 'setprotocol.js';
 import history from '../history'
 
 const configKovan = {
-  coreAddress: '0x29f13822ece62b7a436a45903ce6d5c97d6e4cc9',
-  setTokenFactoryAddress: '0x6c51d8dad8404dbd91e8ab063d21e85ddec9f626',
-  transferProxyAddress: '0xd50ddfed470cc13572c5246e71d4cfb4aba73def',
-  vaultAddress: '0x014e9b34486cfa13e9a2d87028d38cd98f996c8c',
+  coreAddress: '0xdd7d1deb82a64af0a6265951895faf48fc78ddfc',
+  setTokenFactoryAddress: '0x7497d12488ee035f5d30ec716bbf41735554e3b1',
+  transferProxyAddress: '0xa0929aba843ff1a1af4451e52d26f7dde3d40f82',
+  vaultAddress: '0x76aae6f20658f763bd58f5af028f925e7c5319af',
 };
 
 const GET_SET_PROTOCOL = "GET_SET_PROTOCOL"

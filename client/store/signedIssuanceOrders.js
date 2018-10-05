@@ -4,11 +4,13 @@ import BigNumber from 'bignumber.js'
 
 const GET_OPEN_ORDERS = "GET_OPEN_ORDERS"
 const POST_NEW_ORDER = "POST_NEW_ORDER"
+const REMOVE_ORDER = "REMOVE_ORDER"
 
 const defaultOrder = []
 
 const getOpenOrders = (signedIssuanceOrders) => ({type: GET_OPEN_ORDERS, signedIssuanceOrders})
 const postNewOrder = (order) => ({type: POST_NEW_ORDER, order})
+const removeOrder = (orderId) => ({type: REMOVE_ORDER, orderId})
 
 export const fetchOpenOrders = () => async dispatch => {
   try {
@@ -22,8 +24,14 @@ export const fetchOpenOrders = () => async dispatch => {
       parsed.requiredComponentAmounts = parsed.requiredComponentAmounts.map(comp => new BigNumber(comp))
       parsed.salt = new BigNumber(parsed.salt)
       parsed.takerRelayerFee = new BigNumber(parsed.takerRelayerFee)
-      return parsed
+      parsed.signature.v = new BigNumber(parsed.signature.v)
+      const object = {
+        id: element.id,
+        signedIssuanceOrder: parsed
+      }
+      return object
     })
+
     dispatch(getOpenOrders(formatted || defaultOrder))
   } catch (err) {
     console.error(err)
@@ -39,12 +47,23 @@ export const createNewOrder = (order) => async dispatch => {
   }
 }
 
+export const removeFilledOrExpiredOrder = (orderId) => async dispatch => {
+  try {
+    await axios.delete(`/api/signedIssuanceOrders/${orderId}`)
+    dispatch(removeOrder(orderId || defaultOrder))
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 export default function(state = defaultOrder, action) {
 	switch (action.type) {
 		case GET_OPEN_ORDERS:
 		  return action.signedIssuanceOrders
     case POST_NEW_ORDER:
       return [...state, action.order]
+    case REMOVE_ORDER:
+      return state.filter(order => order.id !== action.orderId);
 		default:
 		  return state
 	}

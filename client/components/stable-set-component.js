@@ -220,6 +220,8 @@ class StableSetComponent extends Component {
       takerFee: new BigNumber(0),
     };
 
+    console.log(addresses.weth, signedIssuanceOrder.makerToken)
+
     const zeroExOrderDai = {
       exchangeAddress: addresses.Exchange,
       expirationTimeSeconds: setProtocol.orders.generateExpirationTimestamp(86400),

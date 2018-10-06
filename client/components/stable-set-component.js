@@ -176,7 +176,7 @@ class StableSetComponent extends Component {
     await this.props.createNewOrder(JSONOrder)
   }
 
-  check0xAllowance = async () => {
+  check0xAllowance = async (index) => {
     const {setProtocol, signedIssuanceOrders} = this.props
 
     const zeroExMaker = setProtocol.web3.eth.accounts[0];
@@ -225,7 +225,7 @@ class StableSetComponent extends Component {
 
     console.log(setProtocol.web3.currentProvider)
 
-    await this.check0xAllowance();
+    await this.check0xAllowance(index);
 
     // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.trueUsd, { from: takerAddress });
     // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.dai, { from: takerAddress });
@@ -450,9 +450,6 @@ class StableSetComponent extends Component {
                   <Button onClick={() => this.createZeroExIssuanceOrderWethStableSet(order.id)}>Fill 0x Order</Button>
                 </Segment>
                 ))}
-
-              <Header as="h5">All 0x Orders</Header>
-
             </Form>
           </Grid.Row>
         </Grid>

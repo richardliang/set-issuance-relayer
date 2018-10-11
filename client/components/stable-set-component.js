@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import {connect} from 'react-redux'
-import { Grid, Form, Button, Segment, Header, Popup, Icon } from 'semantic-ui-react'
+import { Grid, Form, Button, Segment, Header, Divider } from 'semantic-ui-react'
 import addresses from '../addresses'
 import BigNumber from 'bignumber.js'
 import SetProtocol, {SignedIssuanceOrder} from 'setprotocol.js'
@@ -21,6 +21,10 @@ class StableSetComponent extends Component {
       issueQty: 0,
       redeemQty: 0,
       balance: 0,
+      rebalancingBalance: 0,
+      issueRebalancingQty: 0,
+      proposedTUSDRatio: 0.5,
+      proposedDAIRatio: 0.5,
     }
   }
 
@@ -32,15 +36,13 @@ class StableSetComponent extends Component {
     })
     const details = await setProtocol.setToken.getDetails(addresses.stableSet)
     const setBalance = await setProtocol.erc20.getBalanceOfAsync(addresses.stableSet, setProtocol.web3.eth.accounts[0])
-    console.log(details, setBalance)
-
+    const rebalancingSetBalance = await setProtocol.erc20.getBalanceOfAsync(addresses.rebalancingStableSetAddress, setProtocol.web3.eth.accounts[0])
     this.setState({
       balance: (setBalance.toNumber()/(10 ** 18)).toFixed(4),
+      rebalancingBalance: (rebalancingSetBalance.toNumber()/(10**18)).toFixed(4),
       details: details,
       loading: false
     })
-
-    console.log(details)
   }
 
   handleCreateSet = async () => {
@@ -70,6 +72,97 @@ class StableSetComponent extends Component {
     let setAddress =  await setProtocol.getSetAddressFromCreateTxHashAsync(txHash);
     console.log("StableSet Address: ", setAddress)
   }
+
+  handleCreateSetForRebalancing = async () => {
+    const { setProtocol } = this.props;
+
+    const componentAddresses = [addresses.dai, addresses.trueUsd];
+    const componentUnits = [new BigNumber(7), new BigNumber(3)];
+    const naturalUnit = new BigNumber(10);
+    const name = "Stable Set v2";
+    const symbol = "STBLv2";
+    const txOpts = {
+      from: setProtocol.web3.eth.accounts[0],
+      gas: 4000000,
+      gasPrice: 8000000000
+    };
+
+    const txHash = await setProtocol.createSetAsync(
+      componentAddresses,
+      componentUnits,
+      naturalUnit,
+      name,
+      symbol,
+      txOpts
+    );
+
+    const set2Address = await setProtocol.getSetAddressFromCreateTxHashAsync(
+      txHash
+    );
+
+    console.log(set2Address);
+    return set2Address
+  }
+
+  createDynamicStableSet = async () => {
+    const {setProtocol} = this.props
+    const manager = setProtocol.web3.eth.accounts[0];      // Make yourself the manager!
+    const initialSet = addresses.stableSet;
+    const unitShares = new BigNumber(10**10); 
+
+    const TWO_MIN = 60*2;
+    const ONE_MIN = 60; // Assuming 30 days in a month
+
+    const proposalPeriod = new BigNumber(TWO_MIN);
+    // In order to rebalance every quarter we must allow for the one week proposal period
+    const rebalanceInterval = new BigNumber(TWO_MIN - ONE_MIN)
+
+    const name = 'Dynamic StableSet Rebalance';
+    const symbol = 'DSTBL';
+    const txOpts = {
+      from: setProtocol.web3.eth.accounts[0],
+      gas: 4000000,
+      gasPrice: 8000000000,
+    };
+    const txHash = await setProtocol.createRebalancingSetTokenAsync(
+      manager,
+      initialSet,
+      unitShares,
+      proposalPeriod,
+      rebalanceInterval,
+      name,
+      symbol,
+      txOpts,
+      );
+    const rebalanceAddress = await setProtocol.getSetAddressFromCreateTxHashAsync(txHash);
+    console.log("Rebalancing Set Address: ", rebalanceAddress)
+    return rebalanceAddress
+  };
+
+  issueRebalancingStableSet = async () => {
+    const {setProtocol} = this.props
+    const {issueRebalancingQty} = this.state
+    const issueQuantity = new BigNumber(new BigNumber(10 ** 18).mul(issueRebalancingQty));
+    console.log(issueQuantity)
+    const isMultipleOfNaturalUnit = await setProtocol.setToken.isMultipleOfNaturalUnitAsync(addresses.rebalancingStableSetAddress, issueQuantity);
+    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.rebalancingStableSetAddress, { from: setProtocol.web3.eth.accounts[0] });
+    if (isMultipleOfNaturalUnit) {
+      try {
+        await setProtocol.issueAsync(
+          addresses.rebalancingStableSetAddress,
+          issueQuantity,
+          {
+            from: setProtocol.web3.eth.accounts[0],
+            gas: 2000000,
+            gasPrice: 8000000000,
+          },
+        );
+      } catch (err) {
+        console.error(`Error when issuing a new Set token: ${err}`)
+      }
+    }
+    console.error(`Issue quantity is not multiple of natural unit. Confirm that your issue quantity is divisible by the natural unit.`);
+  };
 
   issueStableSet = async () => {
     const {setProtocol} = this.props
@@ -371,6 +464,51 @@ class StableSetComponent extends Component {
     }
   }
 
+  proposeDynamicStableSetRebalance = async () => {
+    const {setProtocol} = this.props
+
+    const weightedStableSetAddress = await this.handleCreateSetForRebalancing();
+
+    const auctionLibrary = addresses.linearAuctionCurve;
+    const numberAuctionPriceDivisor = 1000;
+    const startPriceRatio = 0.90;
+    const priceRatioStep = 0.005
+
+    const curveCoefficient = new BigNumber(numberAuctionPriceDivisor*priceRatioStep);
+    const auctionStartPrice = new BigNumber(startPriceRatio*numberAuctionPriceDivisor);
+    const txOpts = {
+      from: setProtocol.web3.eth.accounts[0],
+      gas: 4000000,
+      gasPrice: 8000000000,
+    };
+
+    const proposal = await setProtocol.rebalancing.proposeAsync(
+      addresses.rebalancingStableSetAddress,   // rebalancingSetTokenAddress
+      weightedStableSetAddress,  // nextSetAddress
+      auctionLibrary,         // address of linear auction library
+      curveCoefficient,
+      auctionStartPrice,
+      new BigNumber(numberAuctionPriceDivisor),
+      txOpts,
+    );
+
+    console.log(proposal)
+
+  }
+
+  getBidPrice = async() => {
+    const { setProtocol } = this.props;
+    const rebalancingSetTokenAddress = addresses.rebalancingStableSetAddress;
+    console.log("REBALANCING SET ADDRESS:", rebalancingSetTokenAddress);
+    const bidQuantity = new BigNumber(10 ** 18);
+
+    const txHash = await setProtocol.rebalancing.getBidPriceAsync(
+      rebalancingSetTokenAddress,
+      bidQuantity
+    );
+    console.log("GETTING BID PRICE:", txHash);
+    return txHash;
+  }
 
   render() {  
     const {
@@ -380,7 +518,11 @@ class StableSetComponent extends Component {
       issueQty,
       redeemQty,
       loading,
-      balance
+      balance,
+      rebalancingBalance,
+      issueRebalancingQty,
+      proposedDAIRatio,
+      proposedTUSDRatio
     } = this.state
     const {
       signedIssuanceOrders
@@ -390,6 +532,9 @@ class StableSetComponent extends Component {
         <Grid padded>
           <Grid.Row>
             <Segment basic><Header as="h3">My Balance of STBL: {balance}</Header></Segment> 
+          </Grid.Row>
+          <Grid.Row>
+            <Segment basic><Header as="h3">My Balance of Initial Rebalancing STBL: {rebalancingBalance}</Header></Segment> 
           </Grid.Row>
           <Grid.Row>
             <Form>
@@ -450,6 +595,37 @@ class StableSetComponent extends Component {
                   <Button onClick={() => this.createZeroExIssuanceOrderWethStableSet(order.id)}>Fill 0x Order</Button>
                 </Segment>
                 ))}
+              <Divider />
+              <Header as="h3">Rebalancing Functions</Header>
+              <Form.Button onClick={this.createDynamicStableSet}>Create Rebalance Set</Form.Button>
+              <Form.Group>
+                <Form.Input
+                type="number"
+                label='Input quantity STBL to issue rebalance' 
+                value={issueRebalancingQty}
+                onChange={(e) => this.setState({issueRebalancingQty: e.target.value})} 
+                placeholder='100' 
+                />
+              </Form.Group>
+              <Form.Button onClick={this.issueRebalancingStableSet}>Submit</Form.Button>
+              <Form.Group>
+                <Form.Input
+                type="number"
+                label='Input Proposed Rebalancing Percentage of TUSD' 
+                value={proposedTUSDRatio}
+                onChange={(e) => this.setState({proposedTUSDRatio: e.target.value})} 
+                placeholder='0.4' 
+                />
+                <Form.Input
+                type="number"
+                label='Input Proposed Rebalancing Percentage of DAI' 
+                value={proposedDAIRatio}
+                onChange={(e) => this.setState({proposedDAIRatio: e.target.value})} 
+                placeholder='0.6' 
+                />
+              </Form.Group>
+              <Form.Button onClick={this.proposeDynamicStableSetRebalance}>Submit</Form.Button>
+              <Form.Button onClick={this.getBidPrice}>Get Bid Price</Form.Button>
             </Form>
           </Grid.Row>
         </Grid>

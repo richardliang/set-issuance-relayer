@@ -7860,7 +7860,7 @@ moment-timezone@^0.5.14:
   dependencies:
     moment ">= 2.9.0"
 
-"moment@>= 2.9.0", moment@^2.20.0:
+"moment@>= 2.9.0", moment@^2.20.0, moment@^2.22.2:
   version "2.22.2"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.22.2.tgz#3c257f9839fc0e93ff53149632239eb90783ff66"
   integrity sha1-PCV/mDn8DpP/UxSWMiOeuQeD/2Y=
@@ -10105,7 +10105,33 @@ set-protocol-contracts@0.3.9:
     web3-utils "1.0.0-beta.35"
     zeppelin-solidity "^1.10.0"
 
-set-protocol-utils@0.3.39, set-protocol-utils@^0.3.37:
+set-protocol-utils@0.3.40:
+  version "0.3.40"
+  resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-0.3.40.tgz#e4ee8e88844bf3f2853a9af96a97a1df4f09825f"
+  integrity sha512-oC+Pr2NXCJdNnYDUJmZas79pk8/MjyTFgVMcj55FzRGlRklPt2jgcc3f6dijzwqCRUnAlAvg79Z4xwDmSbxdsw==
+  dependencies:
+    "@0xproject/base-contract" "^1.0.4"
+    "@0xproject/order-utils" "^1.0.1-rc.2"
+    "@0xproject/types" "^1.0.1-rc.3"
+    "@0xproject/typescript-typings" "^1.0.4"
+    "@0xproject/web3-wrapper" "^1.1.2"
+    "@types/lodash" "4.14.104"
+    "@types/node" "^8.0.53"
+    abi-decoder "^1.0.9"
+    bignumber.js "~4.1.0"
+    chai "^4.1.2"
+    ethereum-types "^1.0.0"
+    ethereumjs-util "^5.1.1"
+    ethers "3.0.22"
+    husky "^0.14.3"
+    js-sha3 "^0.7.0"
+    lint-staged "^7.2.0"
+    lodash "^4.17.4"
+    tiny-promisify "^1.0.0"
+    tslint-eslint-rules "^5.3.1"
+    web3 "0.20.0"
+
+set-protocol-utils@^0.3.37:
   version "0.3.39"
   resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-0.3.39.tgz#c041439304f97e4666389411457284c99cf868ae"
   integrity sha512-ljtZ79UF0zC+AumhRI5TVzRxh4K4PNJpDDkAD9t+N2zgZd9yvr4PBGfsxp9HDmKSf6mzg+q+pPskPAZlxn9kBA==
@@ -10161,10 +10187,10 @@ setimmediate@^1.0.4, setimmediate@^1.0.5:
   resolved "https://registry.yarnpkg.com/setimmediate/-/setimmediate-1.0.5.tgz#290cbb232e306942d7d7ea9b83732ab7856f8285"
   integrity sha1-KQy7Iy4waULX1+qbg3Mqt4VvgoU=
 
-setprotocol.js@^1.0.3:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/setprotocol.js/-/setprotocol.js-1.0.3.tgz#3db936a11465a28b52e7f642e3cc104fea8b3781"
-  integrity sha512-yeBtd+TL3jxcp0UjdIFkNGHnQbecXppCFcUqj5HeOpgGd8+I/60ojHiktgZ0D+qSdtMmgWs6xx9prsF6rCMS9A==
+setprotocol.js@^1.0.4-rc.5:
+  version "1.0.4-rc.7"
+  resolved "https://registry.yarnpkg.com/setprotocol.js/-/setprotocol.js-1.0.4-rc.7.tgz#f6befa71824db5ebf292161987da78e52fbca60a"
+  integrity sha512-5Ikk91hZ9lLbkBIbRTKT0ly5WtNK7wjT3G96zFfGrE44E6rrBg9hCKm9KCwGJ+KUUZPN95ZaKa10IINmqMgnYQ==
   dependencies:
     "@0xproject/types" "^0.8.2"
     "@0xproject/typescript-typings" "^1.0.4"
@@ -10183,8 +10209,10 @@ setprotocol.js@^1.0.3:
     jsonschema "^1.2.4"
     lodash "^4.17.4"
     lodash.compact "^3.0.1"
+    moment "^2.22.2"
     set-protocol-contracts "0.3.9"
-    set-protocol-utils "0.3.39"
+    set-protocol-utils "0.3.40"
+    timekeeper "^2.1.2"
     tiny-promisify "^1.0.0"
     truffle-contract "^3.0.1"
     truffle-hdwallet-provider "0.0.3"
@@ -11018,6 +11046,11 @@ timed-out@^4.0.0, timed-out@^4.0.1:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/timed-out/-/timed-out-4.0.1.tgz#f32eacac5a175bea25d7fab565ab3ed8741ef56f"
   integrity sha1-8y6srFoXW+ol1/q1Zas+2HQe9W8=
+
+timekeeper@^2.1.2:
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/timekeeper/-/timekeeper-2.1.2.tgz#0fd98dd839551f2ab6b92b283754ea5a24edc901"
+  integrity sha512-fc1DDqbiyz5vxRO4xkiATwfWUw1FV7W20+FJYal1SnoIYgNuB4WNxYLtbG3zjUBwOSk3P4u1TgBAZYG/aqBWMw==
 
 timers-browserify@^2.0.4:
   version "2.0.10"

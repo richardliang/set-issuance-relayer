@@ -6,6 +6,7 @@ const configKovan = {
   setTokenFactoryAddress: '0x7497d12488ee035f5d30ec716bbf41735554e3b1',
   transferProxyAddress: '0xa0929aba843ff1a1af4451e52d26f7dde3d40f82',
   vaultAddress: '0x76aae6f20658f763bd58f5af028f925e7c5319af',
+  rebalancingSetTokenFactoryAddress: '0x36d6f26843f3e882a2fd1017e93cdad86f3be3cb',
 };
 
 const GET_SET_PROTOCOL = "GET_SET_PROTOCOL"

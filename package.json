@@ -60,7 +60,7 @@
     "redux-thunk": "^2.3.0",
     "semantic-ui-react": "^0.82.5",
     "sequelize": "^4.38.0",
-    "setprotocol.js": "^1.0.3",
+    "setprotocol.js": "^1.0.4-rc.5",
     "socket.io": "^2.1.1",
     "web3": "0.20.7"
   },

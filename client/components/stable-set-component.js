@@ -6,7 +6,7 @@ import BigNumber from 'bignumber.js'
 import SetProtocol, {SignedIssuanceOrder} from 'setprotocol.js'
 import {createNewOrder, removeFilledOrExpiredOrder} from '../store'
 import { assetDataUtils, orderHashUtils, signatureUtils } from '0x.js';
-import { Order, SignedOrder, SignerType } from '@0xproject/types';
+import { SignerType } from '@0xproject/types';
 
 class StableSetComponent extends Component {
   constructor(props){

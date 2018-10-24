@@ -13,6 +13,7 @@ class StableSetComponent extends Component {
     super(props)
 
     this.state = {
+      account: "",
       loading: false,
       stableSetQty: 0,
       price: 0,
@@ -23,8 +24,12 @@ class StableSetComponent extends Component {
       balance: 0,
       rebalancingBalance: 0,
       issueRebalancingQty: 0,
+      redeemRebalancingQty: 0,
       proposedTUSDRatio: 0.5,
       proposedDAIRatio: 0.5,
+      bidQuantity: 0,
+      rebalancingSetSymbol: "",
+      rebalancingSetName: "",
     }
   }
 
@@ -34,20 +39,24 @@ class StableSetComponent extends Component {
     this.setState({
       loading: true
     })
+    const accounts = await setProtocol.web3.eth.getAccounts()
     const details = await setProtocol.setToken.getDetails(addresses.stableSet)
-    const setBalance = await setProtocol.erc20.getBalanceOfAsync(addresses.stableSet, setProtocol.web3.eth.accounts[0])
-    const rebalancingSetBalance = await setProtocol.erc20.getBalanceOfAsync(addresses.rebalancingStableSetAddress, setProtocol.web3.eth.accounts[0])
+    const setBalance = await setProtocol.erc20.getBalanceOfAsync(addresses.stableSet, accounts[0])
+    const rebalancingSetBalance = await setProtocol.erc20.getBalanceOfAsync(addresses.rebalancingStableSetAddress, accounts[0])
     this.setState({
+      account: accounts[0],
       balance: (setBalance.toNumber()/(10 ** 18)).toFixed(4),
       rebalancingBalance: (rebalancingSetBalance.toNumber()/(10**18)).toFixed(4),
       details: details,
       loading: false
     })
+
+    console.log(details, accounts)
   }
 
   handleCreateSet = async () => {
     const {setProtocol} = this.props
-
+    const {account} = this.state
     const componentAddresses = [addresses.dai, addresses.trueUsd];
     const componentUnits = [new BigNumber(5), new BigNumber(5)];
     const naturalUnit = new BigNumber(10);
@@ -55,7 +64,7 @@ class StableSetComponent extends Component {
     const symbol = 'STBL';
 
     const txOpts = {
-      from: setProtocol.web3.eth.accounts[0],
+      from: account,
       gas: 4000000,
       gasPrice: 8000000000,
     };
@@ -68,21 +77,28 @@ class StableSetComponent extends Component {
       symbol,
       txOpts,
       );
-
-    let setAddress =  await setProtocol.getSetAddressFromCreateTxHashAsync(txHash);
-    console.log("StableSet Address: ", setAddress)
+    console.log("in progress")
+    const mined = await setProtocol.awaitTransactionMinedAsync(txHash)
+    console.log("mined")
+    if(mined){
+      let setAddress =  await setProtocol.getSetAddressFromCreateTxHashAsync(txHash);
+      console.log("StableSet Address: ", setAddress)
+      
+    }
   }
 
   handleCreateSetForRebalancing = async () => {
     const { setProtocol } = this.props;
+    const {account, rebalancingSetName, rebalancingSetSymbol} = this.state
+    const {proposedTUSDRatio, proposedDAIRatio} = this.state
 
     const componentAddresses = [addresses.dai, addresses.trueUsd];
-    const componentUnits = [new BigNumber(7), new BigNumber(3)];
+    const componentUnits = [new BigNumber(proposedDAIRatio*10), new BigNumber(proposedTUSDRatio*10)];
     const naturalUnit = new BigNumber(10);
-    const name = "Stable Set v2";
-    const symbol = "STBLv2";
+    const name = rebalancingSetName;
+    const symbol = rebalancingSetSymbol;
     const txOpts = {
-      from: setProtocol.web3.eth.accounts[0],
+      from: account,
       gas: 4000000,
       gasPrice: 8000000000
     };
@@ -96,67 +112,98 @@ class StableSetComponent extends Component {
       txOpts
     );
 
-    const set2Address = await setProtocol.getSetAddressFromCreateTxHashAsync(
-      txHash
-    );
+    console.log("Transaction Hash",txHash)
+    const mined = await setProtocol.awaitTransactionMinedAsync(txHash)
+    console.log("Mined")
+    if(mined){
+      const set2Address = await setProtocol.getSetAddressFromCreateTxHashAsync(
+        txHash
+      );
 
-    console.log(set2Address);
-    return set2Address
+      console.log("Set 2 Address", set2Address);
+      this.setState({
+        weightedStableSetAddress: set2Address,
+        proposedTUSDRatio: 0,
+        proposedDAIRatio: 0
+      })
+    }
   }
 
   createDynamicStableSet = async () => {
     const {setProtocol} = this.props
-    const manager = setProtocol.web3.eth.accounts[0];      // Make yourself the manager!
+    const {account} = this.state
+    console.log(account)
+    const manager = account;      // Make yourself the manager!
     const initialSet = addresses.stableSet;
     const unitShares = new BigNumber(10**10); 
 
     const TWO_MIN = 60*2;
-    const ONE_MIN = 60; // Assuming 30 days in a month
+    const ONE_MIN = 60;
 
-    const proposalPeriod = new BigNumber(TWO_MIN);
-    // In order to rebalance every quarter we must allow for the one week proposal period
+    const proposalPeriod = new BigNumber(ONE_MIN);
     const rebalanceInterval = new BigNumber(TWO_MIN - ONE_MIN)
+    const entranceFee = 0
+    const rebalanceFee = 0
 
     const name = 'Dynamic StableSet Rebalance';
     const symbol = 'DSTBL';
     const txOpts = {
-      from: setProtocol.web3.eth.accounts[0],
+      from: account.toLowerCase(),
       gas: 4000000,
       gasPrice: 8000000000,
     };
+
+    console.log(txOpts)
+
+    console.log(initialSet)
     const txHash = await setProtocol.createRebalancingSetTokenAsync(
       manager,
       initialSet,
       unitShares,
       proposalPeriod,
       rebalanceInterval,
+      entranceFee,
+      rebalanceFee,
       name,
       symbol,
       txOpts,
       );
-    const rebalanceAddress = await setProtocol.getSetAddressFromCreateTxHashAsync(txHash);
-    console.log("Rebalancing Set Address: ", rebalanceAddress)
-    return rebalanceAddress
+    const mined = await setProtocol.awaitTransactionMinedAsync(txHash)
+    if(mined){
+      const rebalanceAddress = await setProtocol.getSetAddressFromCreateTxHashAsync(txHash);
+      console.log("Rebalancing Set Address: ", rebalanceAddress)
+
+      return rebalanceAddress
+      
+    }
   };
 
   issueRebalancingStableSet = async () => {
     const {setProtocol} = this.props
+    const {account} = this.state
     const {issueRebalancingQty} = this.state
     const issueQuantity = new BigNumber(new BigNumber(10 ** 18).mul(issueRebalancingQty));
-    console.log(issueQuantity)
     const isMultipleOfNaturalUnit = await setProtocol.setToken.isMultipleOfNaturalUnitAsync(addresses.rebalancingStableSetAddress, issueQuantity);
-    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.rebalancingStableSetAddress, { from: setProtocol.web3.eth.accounts[0] });
-    if (isMultipleOfNaturalUnit) {
+    const txHash = await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.rebalancingStableSetAddress, { from: account });
+    const mined = await setProtocol.awaitTransactionMinedAsync(txHash)
+    if (isMultipleOfNaturalUnit && mined) {
       try {
-        await setProtocol.issueAsync(
+        const txHashIssued = await setProtocol.issueAsync(
           addresses.rebalancingStableSetAddress,
           issueQuantity,
           {
-            from: setProtocol.web3.eth.accounts[0],
+            from: account,
             gas: 2000000,
             gasPrice: 8000000000,
           },
         );
+        const minedIssueAsync = await setProtocol.awaitTransactionMinedAsync(txHashIssued)
+
+        if(minedIssueAsync){
+          this.setState({
+            rebalancingBalance: issueRebalancingQty
+          })
+        }
       } catch (err) {
         console.error(`Error when issuing a new Set token: ${err}`)
       }
@@ -166,22 +213,38 @@ class StableSetComponent extends Component {
 
   issueStableSet = async () => {
     const {setProtocol} = this.props
-    const {issueQty} = this.state
+    const {account} = this.state
+    const {issueQty, balance} = this.state
     const issueQuantity = new BigNumber(new BigNumber(10 ** 18).mul(issueQty));
 
     const isMultipleOfNaturalUnit = await setProtocol.setToken.isMultipleOfNaturalUnitAsync(addresses.stableSet, issueQuantity);
-    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.stableSet, { from: setProtocol.web3.eth.accounts[0] });
+    
+    // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.trueUsd, { from: account });
+    // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.dai, { from: account });
+    // const txHash = await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.stableSet, { from: account });
+    // const mined = await setProtocol.awaitTransactionMinedAsync(txHash)
+
     if (isMultipleOfNaturalUnit) {
       try {
-        await setProtocol.issueAsync(
+
+        const txHashIssued = await setProtocol.issueAsync(
           addresses.stableSet,
           issueQuantity,
           {
-            from: setProtocol.web3.eth.accounts[0],
+            from: account,
             gas: 2000000,
             gasPrice: 8000000000,
           },
         );
+        const minedIssued = await setProtocol.awaitTransactionMinedAsync(txHashIssued)
+        if(minedIssued){
+          const newBalance = (Number(balance)+issueQty).toFixed(4)
+          this.setState({
+            issueQty: 0,
+            balance: newBalance
+          })
+          
+        }
       } catch (err) {
         console.error(`Error when issuing a new Set token: ${err}`)
       }
@@ -189,15 +252,46 @@ class StableSetComponent extends Component {
     console.error(`Issue quantity is not multiple of natural unit. Confirm that your issue quantity is divisible by the natural unit.`);
   };
 
+  redeemRebalancingStableSet = async () => {
+    const {setProtocol} = this.props
+    const {redeemRebalancingQty, account} = this.state
+
+
+    const quantity = new BigNumber(new BigNumber(10 ** 18).mul(redeemRebalancingQty));
+    const withdraw = true;
+    const tokensToExclude = [];
+    const txOpts = {
+      from: account,
+      gas: 4000000,
+      gasPrice: 8000000000,
+    };
+
+    const txHash = await setProtocol.redeemAsync(
+      addresses.rebalancingStableSetAddress,
+      quantity,
+      withdraw,
+      tokensToExclude,
+      txOpts,
+      );
+
+    const mined = await setProtocol.awaitTransactionMinedAsync(txHash)
+    if(mined){
+      console.log("Mined")
+      this.setState({
+        redeemRebalancingQty: 0,
+      })
+    }
+  };
+
   redeemStableSet = async () => {
     const {setProtocol} = this.props
-    const {redeemQty} = this.state
+    const {redeemQty, balance, account} = this.state
 
     const quantity = new BigNumber(new BigNumber(10 ** 18).mul(redeemQty));
     const withdraw = true;
     const tokensToExclude = [];
     const txOpts = {
-      from: setProtocol.web3.eth.accounts[0],
+      from: account,
       gas: 4000000,
       gasPrice: 8000000000,
     };
@@ -210,13 +304,22 @@ class StableSetComponent extends Component {
       txOpts,
       );
 
-    console.log(txHash)
+    const mined = await setProtocol.awaitTransactionMinedAsync(txHash)
+    if(mined){
+      console.log("Mined")
+      const newBalance = (Number(balance)-redeemQty).toFixed(4)
+      this.setState({
+        redeemQty: 0,
+        balance: newBalance
+      })
+    }
   };
 
   createIssuanceOrderWethStableSet = async () => {
     const {setProtocol} = this.props
+    const {account} = this.state
     const {stableSetQty, price, seconds, details} = this.state
-    const [makerAddress] = setProtocol.web3.eth.accounts
+    const [makerAddress] = account
 
     const wethQty = Math.floor(stableSetQty*price*1000000)/1000000
 
@@ -271,8 +374,8 @@ class StableSetComponent extends Component {
 
   check0xAllowance = async (index) => {
     const {setProtocol, signedIssuanceOrders} = this.props
-
-    const zeroExMaker = setProtocol.web3.eth.accounts[0];
+    const {account} = this.state
+    const zeroExMaker = account;
 
     const orderObj = signedIssuanceOrders.find(order => order.id === index)
     const signedIssuanceOrder = orderObj.signedIssuanceOrder
@@ -308,15 +411,13 @@ class StableSetComponent extends Component {
 
   createZeroExIssuanceOrderWethStableSet = async (index) => {
     const {setProtocol,signedIssuanceOrders} = this.props
-    const {details} = this.state
+    const {account} = this.state
 
     const orderObj = signedIssuanceOrders.find(order => order.id === index)
     const signedIssuanceOrder = orderObj.signedIssuanceOrder
 
-    const zeroExMaker = setProtocol.web3.eth.accounts[0];
-    const takerAddress = setProtocol.web3.eth.accounts[0]
-
-    console.log(setProtocol.web3.currentProvider)
+    const zeroExMaker = account;
+    const takerAddress = account
 
     await this.check0xAllowance(index);
 
@@ -425,11 +526,12 @@ class StableSetComponent extends Component {
 
   handleFillOrder = async (index) => {
     const {setProtocol, signedIssuanceOrders} = this.props
+    const {account} = this.state
     const orderObj = signedIssuanceOrders.find(order => order.id === index)
 
     const signedIssuanceOrder = orderObj.signedIssuanceOrder
 
-    const [takerAddress] = setProtocol.web3.eth.accounts
+    const [takerAddress] = account
     const fillQuantity = signedIssuanceOrder.quantity;
     await setProtocol.orders.validateOrderFillableOrThrowAsync(signedIssuanceOrder, fillQuantity);
     const takerWalletOrder1 = {
@@ -466,8 +568,8 @@ class StableSetComponent extends Component {
 
   proposeDynamicStableSetRebalance = async () => {
     const {setProtocol} = this.props
-
-    const weightedStableSetAddress = await this.handleCreateSetForRebalancing();
+    const {account, weightedStableSetAddress} = this.state
+    // const weightedStableSetAddress = await this.handleCreateSetForRebalancing();
 
     const auctionLibrary = addresses.linearAuctionCurve;
     const numberAuctionPriceDivisor = 1000;
@@ -477,11 +579,10 @@ class StableSetComponent extends Component {
     const curveCoefficient = new BigNumber(numberAuctionPriceDivisor*priceRatioStep);
     const auctionStartPrice = new BigNumber(startPriceRatio*numberAuctionPriceDivisor);
     const txOpts = {
-      from: setProtocol.web3.eth.accounts[0],
+      from: account,
       gas: 4000000,
       gasPrice: 8000000000,
     };
-
     const proposal = await setProtocol.rebalancing.proposeAsync(
       addresses.rebalancingStableSetAddress,   // rebalancingSetTokenAddress
       weightedStableSetAddress,  // nextSetAddress
@@ -491,27 +592,104 @@ class StableSetComponent extends Component {
       new BigNumber(numberAuctionPriceDivisor),
       txOpts,
     );
+    console.log("Transaction processing")
+    const mined = await setProtocol.awaitTransactionMinedAsync(proposal)
+    console.log("Mined")
 
-    console.log(proposal)
+    if(mined){
+      const details = await setProtocol.rebalancing.getProposalDetails(addresses.rebalancingStableSetAddress)
+      console.log(details)
+    }
+  }
+
+  rebalance = async () => {
+    const {setProtocol} = this.props
+    const {account} = this.state
+    const txOpts = {
+      from: account,
+      gas: 4000000,
+      gasPrice: 8000000000,
+    };
+
+    const txHash = await setProtocol.rebalancing.rebalanceAsync(
+      addresses.rebalancingStableSetAddress,
+      txOpts
+      )
+
+    const mined = await setProtocol.awaitTransactionMinedAsync(txHash)
+    if(mined){
+      console.log("entered rebalancing phase")
+    }
+  }
+
+  settleRebalance = async () => {
+    const { setProtocol } = this.props
+    const {account} = this.state
+    const txOpts = {
+      from: account,
+      gas: 4000000,
+      gasPrice: 8000000000,
+    };
+    const txHash = await setProtocol.rebalancing.settleRebalanceAsync(
+      addresses.rebalancingStableSetAddress,
+      txOpts
+      )
+    const mined = await setProtocol.awaitTransactionMinedAsync(txHash)
+    if(mined){
+      console.log("Exiting rebalancing phase")
+    }
 
   }
 
   getBidPrice = async() => {
     const { setProtocol } = this.props;
+    const {bidQuantity} = this.state
     const rebalancingSetTokenAddress = addresses.rebalancingStableSetAddress;
     console.log("REBALANCING SET ADDRESS:", rebalancingSetTokenAddress);
-    const bidQuantity = new BigNumber(10 ** 18);
+    const quantity = new BigNumber(bidQuantity * 10**18);
 
     const txHash = await setProtocol.rebalancing.getBidPriceAsync(
       rebalancingSetTokenAddress,
-      bidQuantity
+      quantity
     );
     console.log("GETTING BID PRICE:", txHash);
     return txHash;
   }
 
+  getRebalanceDetails = async() => {
+    const {setProtocol} = this.props
+
+    const result = await setProtocol.rebalancing.getRebalanceDetails(
+      addresses.rebalancingStableSetAddress,
+      )
+    console.log(result)
+  }
+
+  bidOnRebalance = async () => {
+    console.log("bidding on Rebalance..");
+    const { setProtocol } = this.props;
+    const {account, bidQuantity} = this.state
+    const quantity = new BigNumber(bidQuantity * 10**18);
+    const txOpts = {
+      from: account,
+      gas: 4000000,
+      gasPrice: 8000000000
+    };
+
+    console.log("bidding....");
+
+    const txHash = await setProtocol.rebalancing.bidAsync(
+      addresses.rebalancingStableSetAddress,
+      quantity,
+      txOpts
+    );
+    console.log("BID. HASH: ", txHash);
+    return txHash;
+  }
+
   render() {  
     const {
+      bidQuantity,
       stableSetQty,
       price,
       seconds,
@@ -521,8 +699,11 @@ class StableSetComponent extends Component {
       balance,
       rebalancingBalance,
       issueRebalancingQty,
+      redeemRebalancingQty,
       proposedDAIRatio,
-      proposedTUSDRatio
+      proposedTUSDRatio,
+      rebalancingSetSymbol,
+      rebalancingSetName
     } = this.state
     const {
       signedIssuanceOrders
@@ -601,14 +782,41 @@ class StableSetComponent extends Component {
               <Form.Group>
                 <Form.Input
                 type="number"
-                label='Input quantity STBL to issue rebalance' 
+                label='Input quantity STBL to issue rebalancing DSTBL' 
                 value={issueRebalancingQty}
                 onChange={(e) => this.setState({issueRebalancingQty: e.target.value})} 
                 placeholder='100' 
                 />
               </Form.Group>
               <Form.Button onClick={this.issueRebalancingStableSet}>Submit</Form.Button>
+
+              <Header as="h5">Redeem Rebalancing StableSet</Header>
               <Form.Group>
+                <Form.Input
+                type="number"
+                label='Input quantity DSTBL to redeem for STBL' 
+                value={redeemRebalancingQty}
+                onChange={(e) => this.setState({redeemRebalancingQty: e.target.value})} 
+                placeholder='40' 
+                />
+              </Form.Group>
+              <Form.Button onClick={this.redeemRebalancingStableSet}>Submit</Form.Button>
+
+              <Form.Group>
+                <Form.Input
+                type="text"
+                label='Input New Name' 
+                value={rebalancingSetName}
+                onChange={(e) => this.setState({rebalancingSetName: e.target.value})} 
+                placeholder='StableSet v5' 
+                />
+                <Form.Input
+                type="text"
+                label='Input New Symbol' 
+                value={rebalancingSetSymbol}
+                onChange={(e) => this.setState({rebalancingSetSymbol: e.target.value})} 
+                placeholder='STBLV5' 
+                />
                 <Form.Input
                 type="number"
                 label='Input Proposed Rebalancing Percentage of TUSD' 
@@ -624,8 +832,22 @@ class StableSetComponent extends Component {
                 placeholder='0.6' 
                 />
               </Form.Group>
-              <Form.Button onClick={this.proposeDynamicStableSetRebalance}>Submit</Form.Button>
-              <Form.Button onClick={this.getBidPrice}>Get Bid Price</Form.Button>
+              <Form.Button onClick={this.handleCreateSetForRebalancing}>1) Manager Create Proposal Set</Form.Button>
+              <Form.Button onClick={this.proposeDynamicStableSetRebalance}>2) Start Proposal Phase</Form.Button>
+              <Form.Button onClick={this.rebalance}>3) Start Rebalance Phase</Form.Button>
+              <Form.Button onClick={this.getRebalanceDetails}>4a) Get Current Rebalancing Info</Form.Button>
+              <Form.Group>
+                <Form.Input
+                type="number"
+                label='Input quantity to get bid price and to bid' 
+                value={bidQuantity}
+                onChange={(e) => this.setState({bidQuantity: e.target.value})} 
+                placeholder='40' 
+                />
+              </Form.Group>
+              <Form.Button onClick={this.getBidPrice}>4b) Get Bid Price</Form.Button>
+              <Form.Button onClick={this.bidOnRebalance}>4c) Bid On Rebalance</Form.Button>
+              <Form.Button onClick={this.settleRebalance}>5) Settle Rebalance</Form.Button>
             </Form>
           </Grid.Row>
         </Grid>

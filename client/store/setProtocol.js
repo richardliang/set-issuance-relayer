@@ -1,12 +1,13 @@
 import SetProtocol from 'setprotocol.js';
 import history from '../history'
+import * as Web3 from 'web3';
 
 const configKovan = {
-  coreAddress: '0xdd7d1deb82a64af0a6265951895faf48fc78ddfc',
-  setTokenFactoryAddress: '0x7497d12488ee035f5d30ec716bbf41735554e3b1',
-  transferProxyAddress: '0xa0929aba843ff1a1af4451e52d26f7dde3d40f82',
-  vaultAddress: '0x76aae6f20658f763bd58f5af028f925e7c5319af',
-  rebalancingSetTokenFactoryAddress: '0x36d6f26843f3e882a2fd1017e93cdad86f3be3cb',
+  coreAddress: '0xc89092a43287c12cfe87c8631b718176ea702d18',
+  setTokenFactoryAddress: '0xa4c8d565719fefd8cf79d1178bbf262cbe659af2',
+  transferProxyAddress: '0xbe0adf7616da59017e2fe6a38d047e469ad5126e',
+  vaultAddress: '0x004cb397d5eb64158cc3f3698b89d46abf8e0cfa',
+  rebalancingSetTokenFactoryAddress: '0x07d6ef7a8b0287d6cdcbea21e784b52feccc8dd0',
 };
 
 const GET_SET_PROTOCOL = "GET_SET_PROTOCOL"
@@ -19,7 +20,7 @@ export const removeSetProtocol = () => ({type: REMOVE_SET_PROTOCOL, setProtocol:
 
 export const fetchSetProtocol = () => dispatch => {
   try {
-    const web3 = window.web3;
+    const web3 = window.web3
     if (!web3) throw new Error("no web3 instance found in runtime");
     const setProtocol = new SetProtocol(web3.currentProvider,configKovan)
     dispatch(getSetProtocol(setProtocol || defaultSetProtocol))

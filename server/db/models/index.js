@@ -1,6 +1,6 @@
 const User = require('./user')
 const SignedIssuanceOrders = require('./signedIssuanceOrders')
-const TokenAddresses = require('./tokenAddresses')
+const RebalancingSetAddresses = require('./rebalancingSetAddresses')
 
 /**
  * If we had any associations to make, this would be a great place to put them!
@@ -18,5 +18,5 @@ const TokenAddresses = require('./tokenAddresses')
 module.exports = {
   User,
   SignedIssuanceOrders,
-  TokenAddresses
+  RebalancingSetAddresses
 }

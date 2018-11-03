@@ -18,15 +18,30 @@ const defaultSetProtocol = {}
 const getSetProtocol = (setProtocol) => ({type: GET_SET_PROTOCOL, setProtocol})
 export const removeSetProtocol = () => ({type: REMOVE_SET_PROTOCOL, setProtocol: {}})
 
-export const fetchSetProtocol = () => dispatch => {
-  try {
-    const web3 = window.web3
-    if (!web3) throw new Error("no web3 instance found in runtime");
-    const setProtocol = new SetProtocol(web3.currentProvider,configKovan)
-    dispatch(getSetProtocol(setProtocol || defaultSetProtocol))
-    history.push('/home')
-  } catch (err) {
-    console.error(err)
+export const fetchSetProtocol = () => async dispatch => {
+  const {ethereum, web3} = window
+  if(window.web3){    
+    try {    
+      const web3 = window.web3
+      if (!web3) throw new Error("no web3 instance found in runtime");
+      const setProtocol = new SetProtocol(web3.currentProvider,configKovan)
+      dispatch(getSetProtocol(setProtocol || defaultSetProtocol))
+      history.push('/home')
+    } catch (err) {
+      console.error(err)
+    }
+  }
+  else if(window.ethereum){
+    try {    
+      
+      if (!ethereum) throw new Error("no web3 instance found in runtime");
+      const enable = await ethereum.enable()
+      const setProtocol = new SetProtocol(enable,configKovan)
+      dispatch(getSetProtocol(setProtocol || defaultSetProtocol))
+      history.push('/home')
+    } catch (err) {
+      console.error(err)
+    }
   }
 }
 

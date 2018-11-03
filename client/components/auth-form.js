@@ -1,7 +1,7 @@
 import React from 'react'
 import {connect} from 'react-redux'
 import PropTypes from 'prop-types'
-import {fetchSetProtocol, fetchOpenOrders, fetchRebalancingSetAddresses} from '../store'
+import {fetchSetProtocol, fetchOpenOrders, fetchSetAddresses} from '../store'
 import { Grid, Form, Button, Segment, Header, Popup, Icon } from 'semantic-ui-react'
 
 
@@ -44,7 +44,7 @@ const mapDispatch = dispatch => {
       e.preventDefault()
       dispatch(fetchSetProtocol())
       dispatch(fetchOpenOrders())
-      dispatch(fetchRebalancingSetAddresses())
+      dispatch(fetchSetAddresses())
     }
   }
 }

@@ -5,13 +5,13 @@ import {composeWithDevTools} from 'redux-devtools-extension'
 import user from './user'
 import setProtocol from './setProtocol'
 import signedIssuanceOrders from './signedIssuanceOrders'
-import rebalancingSetAddresses from './rebalancingSetAddresses'
+import setAddresses from './setAddresses'
 
 const reducer = combineReducers({
 	user,
 	setProtocol,
 	signedIssuanceOrders,
-	rebalancingSetAddresses
+	setAddresses
 })
 const middleware = composeWithDevTools(
   applyMiddleware(thunkMiddleware, createLogger({collapsed: true}))
@@ -22,4 +22,4 @@ export default store
 export * from './user'
 export * from './setProtocol'
 export * from './signedIssuanceOrders'
-export * from './rebalancingSetAddresses'
+export * from './setAddresses'

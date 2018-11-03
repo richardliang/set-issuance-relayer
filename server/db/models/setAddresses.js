@@ -1,16 +1,16 @@
 const Sequelize = require('sequelize')
 const db = require('../db')
 
-const RebalancingSetAddresses = db.define('rebalancingSetAddresses', {
+const SetAddresses = db.define('setAddresses', {
   name: {
     type: Sequelize.STRING,
     allowNull: false
   },
-  rebalancingSetAddress: {
+  setAddress: {
     type: Sequelize.STRING,
     unique: true,
     allowNull: false
   },
 })
 
-module.exports = RebalancingSetAddresses
+module.exports = SetAddresses

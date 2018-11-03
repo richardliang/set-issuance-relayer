@@ -142,8 +142,8 @@ class StableSetComponent extends Component {
 
     const proposalPeriod = new BigNumber(ONE_MIN);
     const rebalanceInterval = new BigNumber(TWO_MIN - ONE_MIN)
-    const entranceFee = 0
-    const rebalanceFee = 0
+    const entranceFee = new BigNumber(0)
+    const rebalanceFee = new BigNumber(0)
 
     const name = 'Dynamic StableSet Rebalance';
     const symbol = 'DSTBL';

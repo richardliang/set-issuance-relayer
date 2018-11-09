@@ -319,7 +319,8 @@ class StableSetComponent extends Component {
     const {setProtocol} = this.props
     const {account} = this.state
     const {stableSetQty, price, seconds, details} = this.state
-    const [makerAddress] = account
+    const makerAddress = account
+    console.log(account)
 
     const wethQty = Math.floor(stableSetQty*price*1000000)/1000000
 
@@ -344,10 +345,10 @@ class StableSetComponent extends Component {
       gasPrice: 8000000000
     };
 
-    // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(
-    //   makerToken,
-    //   txOpts
-    // )
+    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(
+      makerToken,
+      txOpts
+    )
 
     const signedIssuanceOrder = await setProtocol.orders.createSignedOrderAsync(
       addresses.stableSet,
@@ -416,13 +417,13 @@ class StableSetComponent extends Component {
     const orderObj = signedIssuanceOrders.find(order => order.id === index)
     const signedIssuanceOrder = orderObj.signedIssuanceOrder
 
-    const zeroExMaker = account;
-    const takerAddress = account
+    const zeroExMaker = account.toLowerCase();
+    const takerAddress = account.toLowerCase();
 
     await this.check0xAllowance(index);
 
-    // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.trueUsd, { from: takerAddress });
-    // await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.dai, { from: takerAddress });
+    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.trueUsd, { from: takerAddress });
+    await setProtocol.setUnlimitedTransferProxyAllowanceAsync(addresses.dai, { from: takerAddress });
     const fillQuantity = signedIssuanceOrder.quantity
 
     const zeroExOrderTrueUSD = {
@@ -531,7 +532,7 @@ class StableSetComponent extends Component {
 
     const signedIssuanceOrder = orderObj.signedIssuanceOrder
 
-    const [takerAddress] = account
+    const takerAddress = account
     const fillQuantity = signedIssuanceOrder.quantity;
     await setProtocol.orders.validateOrderFillableOrThrowAsync(signedIssuanceOrder, fillQuantity);
     const takerWalletOrder1 = {

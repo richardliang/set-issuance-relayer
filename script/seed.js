@@ -7,14 +7,9 @@ async function seed() {
   await db.sync({force: true})
   console.log('db synced!')
 
-  const users = await Promise.all([
-    User.create({email: 'cody@email.com', password: '123'}),
-    User.create({email: 'murphy@email.com', password: '123'})
-  ])
-
-  const rebalancingSetAddresses = await Promise.all([
-    RebalancingSetAddresses.create({name: 'StableSet v3', rebalancingSetAddress: "0x2dec5912e7cf070524d0a11ee8b4f5b8f2e5b861"}),
-  ])
+  // const rebalancingSetAddresses = await Promise.all([
+  //   RebalancingSetAddresses.create({name: 'StableSet v3', rebalancingSetAddress: "0x2dec5912e7cf070524d0a11ee8b4f5b8f2e5b861"}),
+  // ])
 
   console.log(`seeded successfully`)
 }

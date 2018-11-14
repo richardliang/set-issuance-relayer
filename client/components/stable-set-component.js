@@ -344,6 +344,7 @@ class StableSetComponent extends Component {
     const {stableSetQty, price, seconds, details} = this.state
     const makerAddress = account.toLowerCase()
 
+
     const wethQty = Math.floor(stableSetQty*price*1000000)/1000000
 
     const quantity = new BigNumber(new BigNumber(10**13).mul(stableSetQty))
@@ -449,6 +450,7 @@ class StableSetComponent extends Component {
     const takerAddress = account.toLowerCase()
 
     await this.check0xAllowance(index);
+
 
 
     const fillQuantity = signedIssuanceOrder.quantity
